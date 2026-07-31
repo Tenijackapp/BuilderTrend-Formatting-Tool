@@ -3,168 +3,143 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BuilderTrend → JACK Estimate Formatter</title>
+<title>JACK Import Formatter</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   :root{
-    /* JACK brand palette (Brand Guidelines V1.0) */
-    --steel:#1F2433;       /* Steel - primary dark */
-    --steel-2:#2c3346;
-    --toolbox:#450000;     /* Toolbox - deep red */
-    --brick:#FF4F33;       /* Brick */
-    --pasty:#FF9600;       /* Pasty - accent orange */
-    --turf:#243314;        /* Turf */
-    --esky:#ABDBFF;        /* Esky - light blue */
-    --sand:#FFF7F0;        /* Sand - warm off-white */
-
-    --ink:var(--steel);
-    --ink-2:var(--steel-2);
-    --panel:#ffffff;
-    --line:#e4e0da;
-    --accent:var(--pasty);
-    --accent-2:#e07f00;
-    --amber:var(--brick);  /* allowance flag = Brick */
-    --good:var(--turf);
-    --bad:var(--toolbox);
-    --muted:#6b6357;
-    --bg:var(--sand);
-    --chip:#fdeede;
+    --brick:#FF4F33; --toolbox:#450000; --pasty:#FF9600; --turf:#243314;
+    --esky:#ABDBFF; --steel-navy:#1F2433; --ink:#1F2433; --sand:#FFF7F0;
+    --steel:#5B646D; --line:#E6E1DB; --paper:#F4F5F6; --card:#FFFFFF;
+    --hivis:#FF9600;
+    --ok:#2E6B1E; --ok-bg:#EAF2E4;
+    --warn:#B36800; --warn-bg:#FFF1DC;
+    --err:#C22A16; --err-bg:#FCEAE7;
+    --action:#1F6FEB;
+    --fixed-bg:#FFF9DE;
   }
   *{box-sizing:border-box}
   body{margin:0;font-family:"Segoe UI",-apple-system,Roboto,Helvetica,Arial,sans-serif;
-    background:var(--bg);color:var(--ink);font-size:14px;}
-  header{background:var(--steel);color:#fff;
-    padding:24px 30px;display:flex;align-items:center;gap:22px;
-    border-bottom:4px solid var(--pasty);}
-  header .logo{height:46px;width:auto;display:block}
-  header .htxt{border-left:1px solid rgba(255,255,255,.18);padding-left:22px}
-  header h1{font-size:19px;margin:0;font-weight:700;letter-spacing:.3px;text-transform:uppercase}
-  header p{margin:3px 0 0;font-size:12.5px;color:#aeb4c2;letter-spacing:.2px}
-  .wrap{max-width:1500px;margin:22px auto;padding:0 22px 60px;}
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;
-    padding:20px;margin-bottom:18px;box-shadow:0 1px 3px rgba(11,31,51,.05);}
-  .drop{border:2px dashed var(--line);border-radius:12px;padding:38px;text-align:center;
-    cursor:pointer;transition:.15s;background:#fafcfe;}
-  .drop:hover,.drop.drag{border-color:var(--accent);background:var(--chip);}
-  .drop h2{margin:0 0 6px;font-size:16px}
-  .drop p{margin:0;color:var(--muted);font-size:13px}
-  .btn{background:var(--pasty);color:#3a2400;border:none;padding:11px 20px;border-radius:8px;
-    font-weight:700;cursor:pointer;font-size:14px;transition:.15s;letter-spacing:.2px}
-  .btn:hover{background:var(--accent-2);color:#fff}
-  .btn:disabled{background:#a9bdd6;cursor:not-allowed}
-  .btn.ghost{background:#fff;color:var(--steel);border:1px solid var(--line)}
-  .btn.ghost:hover{background:var(--chip);border-color:var(--pasty)}
-  .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
-  .stat{display:flex;gap:14px;flex-wrap:wrap;margin:4px 0 0}
-  .pill{background:var(--chip);border:1px solid #f4d9b8;border-radius:999px;
-    padding:5px 13px;font-size:12.5px;color:var(--accent-2);font-weight:600}
-  .pill.warn{background:#ffece7;border-color:#ffc9bd;color:#c0341c}
-  .pill.ok{background:#eaf4ff;border-color:#c4e2ff;color:#1b5a8f}
-  h3.sec{font-size:13px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);
-    margin:0 0 12px;font-weight:700}
-  table{border-collapse:collapse;width:100%;font-size:12.5px}
-  th,td{border:1px solid var(--line);padding:7px 9px;text-align:left;vertical-align:top}
-  th{background:var(--ink);color:#fff;position:sticky;top:0;font-weight:600;white-space:nowrap}
-  tr:nth-child(even) td{background:#f7fafd}
-  .tbl-scroll{max-height:460px;overflow:auto;border:1px solid var(--line);border-radius:10px}
-  td.spec{color:var(--amber);font-weight:700}
-  td.num{text-align:right;font-variant-numeric:tabular-nums}
-  .flagcell{font-size:11px;color:var(--muted)}
-  .chg{background:#fdf1e2!important;}
-  .muted{color:var(--muted)}
-  .toolbar{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:14px}
-  .hide{display:none}
-  details.log{margin-top:12px}
-  details.log summary{cursor:pointer;font-weight:600;color:var(--accent-2);font-size:13px}
-  .logbox{margin-top:10px;max-height:220px;overflow:auto;background:#0B1F33;color:#cfe0f2;
-    border-radius:8px;padding:12px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11.5px;line-height:1.55}
-  .logbox .l-fix{color:#7fd6a8}.logbox .l-flag{color:#f0c07a}.logbox .l-info{color:#9cc4f0}
-  .legend{display:flex;gap:18px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:10px}
-  .legend span{display:inline-flex;align-items:center;gap:6px}
-  .sw{width:14px;height:14px;border-radius:3px;display:inline-block}
-  /* template selector */
-  h3.sec{margin-bottom:14px}
-  .tpl-select-wrap{position:relative;max-width:520px}
-  .tpl-select-wrap::after{content:"";position:absolute;right:16px;top:50%;
-    width:9px;height:9px;border-right:2px solid var(--steel);border-bottom:2px solid var(--steel);
-    transform:translateY(-70%) rotate(45deg);pointer-events:none;opacity:.6}
-  #tplSelect{width:100%;appearance:none;-webkit-appearance:none;
-    border:1.5px solid var(--line);border-radius:10px;background:#fff;
-    padding:13px 42px 13px 15px;font-size:14px;font-weight:600;color:var(--steel);
-    font-family:inherit;cursor:pointer;transition:.15s;line-height:1.3}
-  #tplSelect:hover{border-color:var(--pasty)}
-  #tplSelect:focus{outline:none;border-color:var(--pasty);box-shadow:0 0 0 3px rgba(255,150,0,.2)}
-  #tplSelect option{color:var(--steel);font-weight:600}
-  #tplSelect option:disabled{color:#a49b8d;font-weight:500}
-  .src-line{font-size:12px;color:var(--muted);margin-top:12px}
-  .src-line b{color:var(--steel)}
-  /* markup banner */
-  .mk-banner{margin-top:16px;border-radius:10px;padding:14px 16px;font-size:13px;line-height:1.5;
-    display:flex;gap:12px;align-items:flex-start}
-  .mk-banner .ic{font-size:17px;line-height:1;margin-top:1px}
-  .mk-banner.global{background:var(--chip);border:1px solid #f4d9b8;color:#7a4a00}
-  .mk-banner.perline{background:#eef6ff;border:1px solid #cfe4fb;color:#1b4f7a}
-  .mk-banner b{color:var(--steel)}
-  .mk-banner .rate{font-weight:800;font-size:15px;color:var(--accent-2)}
-  /* worksheet selector */
-  .ws-row{margin-top:16px;padding-top:16px;border-top:1px solid var(--line);
-    display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
-  .ws-file{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--steel);font-weight:600}
-  .ws-file .ws-ic{color:var(--good);font-size:16px}
-  .ws-pick{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-  .ws-pick label{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);font-weight:700}
-  #wsSelect{appearance:none;-webkit-appearance:none;border:1.5px solid var(--line);border-radius:9px;
-    background:#fff;padding:10px 34px 10px 13px;font-size:13.5px;font-weight:600;color:var(--steel);
-    font-family:inherit;cursor:pointer;min-width:190px;
+    background:var(--paper);color:var(--ink);font-size:14px}
+  header{background:var(--steel-navy);color:#fff;padding:16px 22px 14px;display:flex;
+    align-items:center;gap:20px;border-bottom:4px solid var(--pasty)}
+  header .logo{height:42px;width:auto;display:block;filter:brightness(0) invert(1)}
+  header .htxt{border-left:1px solid rgba(255,255,255,.35);padding-left:20px}
+  header h1{font-size:19px;margin:0;font-weight:700;letter-spacing:.4px;text-transform:uppercase}
+  header .h-sub{margin:3px 0 0;font-size:12.5px;color:#aeb4c2}
+  header .h-sub b{color:#fff}
+  header .h-sub .bld{color:#8a92a3}
+  .wrap{max-width:1700px;margin:18px auto;padding:0 18px 60px}
+  .toprow{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start}
+  @media(max-width:980px){ .toprow{grid-template-columns:1fr} }
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:18px}
+  .step-head{display:flex;align-items:center;gap:11px;margin-bottom:16px}
+  .step{width:22px;height:22px;border-radius:5px;background:var(--ink);color:var(--pasty);
+    font-weight:700;font-size:13px;display:grid;place-items:center;flex:none;font-family:inherit}
+  .step-head h2{margin:0;font-size:16px;text-transform:uppercase;font-weight:600;letter-spacing:.3px}
+  .fld-label{display:block;font-size:11.5px;text-transform:uppercase;letter-spacing:.6px;
+    color:var(--steel);font-weight:700;margin-bottom:7px}
+  select,textarea,input[type=text]{font-family:inherit}
+  .sel{width:100%;appearance:none;-webkit-appearance:none;border:1.5px solid var(--line);
+    border-radius:8px;background:#fff;padding:11px 38px 11px 13px;font-size:14px;font-weight:600;
+    color:var(--ink);cursor:pointer;
     background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7' viewBox='0 0 10 7'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%231F2433' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
     background-repeat:no-repeat;background-position:right 13px center}
-  #wsSelect:hover,#wsSelect:focus{border-color:var(--pasty);outline:none}
-  /* --- screenshot-style layout --- */
-  .step-head{display:flex;align-items:center;gap:11px;margin-bottom:18px}
-  .step-num{width:26px;height:26px;border-radius:7px;background:var(--steel);color:#fff;
-    font-weight:800;font-size:14px;display:grid;place-items:center;flex:none}
-  .step-head h3.sec{margin:0}
-  .fld-label{display:block;font-size:11.5px;text-transform:uppercase;letter-spacing:.6px;
-    color:var(--muted);font-weight:700;margin-bottom:7px}
-  #pasteBox{width:100%;min-height:190px;resize:vertical;border:1.5px solid var(--line);
-    border-radius:10px;padding:12px 14px;font-family:ui-monospace,Menlo,Consolas,monospace;
-    font-size:12.5px;line-height:1.55;color:var(--steel);background:#fff}
+  .sel:hover,.sel:focus{border-color:var(--pasty);outline:none}
+  .sel option:disabled{color:#a49b8d}
+  .hint{font-size:12px;color:var(--steel);margin-top:8px;line-height:1.5}
+  #pasteBox{width:100%;min-height:150px;resize:vertical;border:1.5px solid var(--line);border-radius:9px;
+    padding:11px 13px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;line-height:1.55;
+    color:var(--ink);background:#fff;margin-top:0}
   #pasteBox:focus{outline:none;border-color:var(--pasty);box-shadow:0 0 0 3px rgba(255,150,0,.18)}
-  .or-file{margin-top:20px}
-  .file-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;
-    border:1.5px dashed var(--line);border-radius:10px;padding:12px 14px;transition:.15s}
-  .file-row.drag{border-color:var(--pasty);background:var(--chip)}
-  .chosen-name{font-size:13px;color:var(--muted)}
+  .file-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;border:1.5px dashed var(--line);
+    border-radius:9px;padding:12px 14px;transition:.15s}
+  .file-row.drag{border-color:var(--pasty);background:var(--sand)}
   #inputCard.card-drag{outline:2px dashed var(--pasty);outline-offset:4px}
-  .ws-block{margin-top:20px;max-width:380px}
-  #wsSelect{width:100%}
-  .btn-block{width:100%;margin-top:22px;padding:14px;font-size:15px;text-transform:uppercase;letter-spacing:.5px}
-  .empty-state{font-size:13px;color:var(--muted);line-height:1.6;
-    border:1px dashed var(--line);border-radius:10px;padding:16px}
-  .empty-state b{font-weight:700;padding:1px 6px;border-radius:5px;font-size:12px}
-  .tag-fixed{background:#eaf4ff;color:#1b5a8f}
-  .tag-review{background:var(--chip);color:#a5610f}
-  .tag-error{background:#ffece7;color:#c0341c}
-  .preview-wrap{margin-top:20px}
-  /* --- two-column layout (screenshot) --- */
-  .layout{display:grid;grid-template-columns:420px 1fr;gap:20px;align-items:start}
-  @media(max-width:960px){ .layout{grid-template-columns:1fr} }
-  .col-left,.col-right{min-width:0}
+  .chosen-name{font-size:13px;color:var(--steel)}
+  .ws-block{margin-top:16px;max-width:420px}
+  .btn{font-family:inherit;font-weight:600;font-size:14px;text-transform:uppercase;letter-spacing:.5px;
+    border:none;border-radius:6px;padding:11px 16px;cursor:pointer;transition:filter .15s;color:#fff}
+  .btn-primary{background:var(--pasty);color:#3a2400}
+  .btn-primary:hover{filter:brightness(1.04)}
+  .btn-small{background:#EDEEEA;color:var(--ink);padding:8px 13px;font-size:12.5px}
+  .btn-small:hover{filter:brightness(.96)}
+  .btn-small:disabled{opacity:.5;cursor:not-allowed}
+  .btn-fix{background:var(--pasty);color:#3a2400}
+  .btn-row{display:flex;gap:10px;margin-top:18px}
+  .btn-block{flex:1}
+  /* inspection card */
+  #checks{max-height:520px;overflow-y:auto;margin-top:6px;padding-right:4px}
+  #checks::-webkit-scrollbar{width:8px}
+  #checks::-webkit-scrollbar-thumb{background:#d9d3ca;border-radius:8px}
+  .count-summary{position:sticky;top:0;background:var(--card);padding:6px 0 10px;display:flex;
+    gap:8px;flex-wrap:wrap;z-index:2;border-bottom:1px solid var(--line);margin-bottom:10px}
+  .cchip{border-radius:99px;padding:5px 12px;font-size:12px;font-weight:700}
+  .cchip.err{background:var(--err-bg);color:var(--err)}
+  .cchip.rev{background:var(--warn-bg);color:var(--warn)}
+  .cchip.fix{background:var(--fixed-bg);color:#8a6d00}
+  .cchip.ok{background:var(--ok-bg);color:var(--ok)}
+  .check{display:flex;gap:9px;padding:8px 10px;border-left:4px solid var(--line);background:#FBFBF9;
+    border-radius:0 6px 6px 0;font-size:13px;margin-bottom:6px;line-height:1.45}
+  .check.err{border-left-color:var(--err)}
+  .check.rev{border-left-color:var(--warn)}
+  .check.fix{border-left-color:var(--hivis)}
+  .stamp{font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.4px;flex:none;
+    padding:1px 7px;border-radius:4px;height:fit-content}
+  .stamp.err{background:var(--err-bg);color:var(--err)}
+  .stamp.rev{background:var(--warn-bg);color:var(--warn)}
+  .stamp.fix{background:var(--fixed-bg);color:#8a6d00}
+  .empty-inspect{font-size:13px;color:var(--steel);line-height:1.6;border:1px dashed var(--line);
+    border-radius:9px;padding:16px}
+  .empty-inspect b{font-weight:700;padding:1px 6px;border-radius:5px;font-size:12px}
+  .tag-fixed{background:var(--fixed-bg);color:#8a6d00}
+  .tag-review{background:var(--warn-bg);color:var(--warn)}
+  .tag-error{background:var(--err-bg);color:var(--err)}
+  /* output card */
   .output-top{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px}
-  .detect-row{margin-bottom:14px}
-  .chip-detect{display:inline-block;background:#f1efec;color:#8a8175;border:1px solid #e0dbd3;
-    border-radius:999px;padding:5px 13px;font-size:12px;font-weight:700}
-  .chip-detect.ok{background:#eaf4ff;color:#1b5a8f;border-color:#c4e2ff}
-  .output-panel{border:1px solid var(--line);border-radius:11px;min-height:360px;
-    padding:18px;background:#fff;display:flex;flex-direction:column}
-  .nothing-yet{margin:auto;text-align:center;color:var(--muted);max-width:440px;padding:40px 10px}
-  .nothing-yet .ny-title{font-size:15px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;
-    color:var(--steel);margin-bottom:10px}
-  .nothing-yet p{margin:0;font-size:13px;line-height:1.6}
-  .hl-legend{font-size:11.5px;color:var(--muted);line-height:1.5;margin-top:14px}
-  #dlBtn:disabled{background:#e7e2da;color:#a49b8d;cursor:not-allowed}
-  #stats{margin-bottom:14px}
-  .foot{text-align:center;color:var(--muted);font-size:12px;margin-top:26px}
+  .summary{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+  .pill{border-radius:99px;padding:5px 13px;font-size:12px;font-weight:600;background:#EDEEEA;color:var(--ink)}
+  .pill.ok{background:var(--ok-bg);color:var(--ok)}
+  .pill.rev{background:var(--warn-bg);color:var(--warn)}
+  .pill.fix{background:var(--fixed-bg);color:#8a6d00}
+  .phasebar{display:none;align-items:center;gap:12px;background:var(--warn-bg);border:1px solid #f2d9b3;
+    border-radius:6px;padding:10px 13px;margin-bottom:10px;font-size:13px;line-height:1.45}
+  .phasebar.show{display:flex}
+  .phasebar .pb-msg{flex:1}
+  .phasebar .pb-msg b{color:var(--ink)}
+  .mkbar-info{background:#EAF6EC;border-color:#BFE3C6}
+  .mkbar-info .rate{font-weight:800;color:var(--ok)}
+  .mk-input{font-family:ui-monospace,Menlo,Consolas,monospace;text-align:right;width:74px;
+    border:1.5px solid var(--line);border-radius:5px;padding:5px 7px;font-size:13px}
+  .toolbar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:12px}
+  .toolbar .spacer{flex:1}
+  .tpill{border-radius:99px;padding:6px 13px;font-size:12.5px;font-weight:700;background:#EDEEEA;color:var(--ink)}
+  .tpill.on{background:var(--ok-bg);color:var(--ok)}
+  .flt{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--ink);cursor:pointer;user-select:none}
+  .tbl-wrap{border:1px solid var(--line);border-radius:6px;max-height:62vh;overflow:auto}
+  table{border-collapse:collapse;width:100%;font-size:12.5px}
+  th,td{border:1px solid var(--line);padding:6px 9px;text-align:left;vertical-align:top}
+  th{background:var(--ink);color:#fff;position:sticky;top:0;font-weight:600;white-space:nowrap;z-index:1}
+  th.req::after{content:" *";color:var(--pasty)}
+  td.num{text-align:right;font-variant-numeric:tabular-nums}
+  td[contenteditable]:focus{outline:2px solid var(--action);outline-offset:-2px;background:#fff}
+  .rownum{background:#F7F5F2;color:var(--steel);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .delrow{border:none;background:var(--err-bg);color:var(--err);border-radius:4px;cursor:pointer;
+    font-weight:700;padding:1px 6px;margin-left:6px;font-size:12px}
+  .c-fixed{background:var(--fixed-bg);box-shadow:inset 3px 0 0 var(--hivis)}
+  .c-review{background:var(--warn-bg);box-shadow:inset 3px 0 0 var(--warn)}
+  .c-error{background:var(--err)!important;color:#fff;font-weight:700;box-shadow:inset 3px 0 0 #7d1a0d}
+  .c-error:focus{background:#fff!important;color:var(--ink)}
+  .row-flag td{background:#FBF7EF}
+  .was{color:var(--steel);text-decoration:line-through;margin-right:5px;opacity:.8}
+  .legend-foot{font-size:11.5px;color:var(--steel);line-height:1.5;margin-top:12px}
+  .pager{display:flex;align-items:center;gap:12px;margin-top:12px;font-size:13px;color:var(--steel)}
+  .empty-out{text-align:center;color:var(--steel);padding:50px 10px}
+  .empty-out .eo-t{font-size:15px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--ink);margin-bottom:10px}
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;
+    padding:11px 18px;border-radius:8px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .25s;z-index:99}
+  .toast.show{opacity:1}
+  .hide{display:none}
+  .foot{text-align:center;color:var(--steel);font-size:12px;margin-top:26px}
 </style>
 </head>
 <body>
@@ -172,216 +147,166 @@
   <img class="logo" src="data:image/png;base64,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" alt="JACK App">
   <div class="htxt">
     <h1>Import Formatter</h1>
-    <p>Formats <b style="color:#fff">BuilderTrend estimate exports</b> for import into the JACK App. Currently supports the Costings / Estimate template.</p>
+    <p class="h-sub">Formats <b>BuilderTrend estimate exports</b> for import into the JACK App. Supports the Costings / Estimate template. <span class="bld">(build 5)</span></p>
   </div>
 </header>
 
 <div class="wrap">
- <div class="layout">
-  <div class="col-left">
-   <div class="card" id="inputCard">
-    <div class="step-head"><span class="step-num">1</span><h3 class="sec">Paste your data</h3></div>
-
+ <div class="toprow">
+  <div class="card" id="inputCard">
+    <div class="step-head"><span class="step">1</span><h2>Paste your data</h2></div>
     <label class="fld-label" for="tplSelect">Template</label>
-    <div class="tpl-select-wrap">
-      <select id="tplSelect" aria-label="Choose a template">
-        <option value="bt-estimate" selected>Costings / Estimate</option>
-        <option value="catalogue" disabled>Catalogue items  —  coming soon</option>
-        <option value="suppliers" disabled>Suppliers  —  coming soon</option>
-        <option value="contractors" disabled>Contractors  —  coming soon</option>
-        <option value="clients" disabled>Clients &amp; contacts  —  coming soon</option>
-        <option value="schedules" disabled>Job schedules  —  coming soon</option>
-        <option value="leads" disabled>Leads  —  coming soon</option>
-      </select>
-    </div>
-    <div class="src-line" style="margin-top:8px">Built for <b>BuilderTrend</b> estimate exports. Other templates are coming soon.</div>
+    <select class="sel" id="tplSelect" aria-label="Template">
+      <option value="bt-estimate" selected>Costings / Estimate</option>
+      <option value="catalogue" disabled>Catalogue items (coming soon)</option>
+      <option value="suppliers" disabled>Suppliers (coming soon)</option>
+      <option value="contractors" disabled>Contractors (coming soon)</option>
+      <option value="clients" disabled>Clients &amp; contacts (coming soon)</option>
+      <option value="schedules" disabled>Job schedules (coming soon)</option>
+      <option value="leads" disabled>Leads (coming soon)</option>
+    </select>
+    <div class="hint">Built for <b>BuilderTrend</b> estimate exports. Other templates are coming soon.</div>
 
-    <label class="fld-label" for="pasteBox" style="margin-top:20px">Data (copy straight from Excel, headers included)</label>
-    <textarea id="pasteBox" spellcheck="false" placeholder="Paste rows here, e.g.&#10;&#10;Category&#9;Description&#9;Quantity&#9;Unit Cost&#9;Markup&#10;Preliminaries&#9;Peg set backs &amp; levels&#9;1&#9;1700&#9;12.5"></textarea>
+    <label class="fld-label" for="ccCase" style="margin-top:16px">Cost Category casing</label>
+    <select class="sel" id="ccCase" aria-label="Cost Category casing">
+      <option value="proper" selected>Proper Case (Demolition Works)</option>
+      <option value="upper">UPPERCASE (DEMOLITION WORKS)</option>
+    </select>
 
-    <div class="or-file">
-      <label class="fld-label" style="margin-top:0">Or open an Excel / CSV file</label>
+    <label class="fld-label" for="pasteBox" style="margin-top:16px">Data (copy straight from Excel, headers included)</label>
+    <textarea id="pasteBox" spellcheck="false" placeholder="Category&#9;Description&#9;Quantity&#9;Unit Cost&#9;Markup&#10;Preliminaries&#9;Peg set backs &amp; levels&#9;1&#9;1700&#9;12.5"></textarea>
+
+    <div style="margin-top:16px">
+      <label class="fld-label">Or open an Excel / CSV file</label>
       <div class="file-row" id="dropZone">
-        <button class="btn ghost" id="browseBtn" type="button">Choose File</button>
-        <span id="chosenName" class="chosen-name">No file chosen — or drag &amp; drop it here</span>
-        <input type="file" id="file" accept=".xlsx,.xls,.csv" class="hide">
+        <button class="btn btn-small" id="browseBtn" type="button">Choose File</button>
+        <span id="chosenName" class="chosen-name">No file chosen &mdash; or drag &amp; drop it here</span>
+        <input type="file" id="file" accept=".xlsx,.xlsm,.xls,.csv,.tsv,.txt" class="hide">
       </div>
     </div>
 
     <div class="ws-block hide" id="wsRow">
-      <label class="fld-label" for="wsSelect" style="margin-top:0">Worksheet</label>
-      <select id="wsSelect" aria-label="Choose worksheet"></select>
+      <label class="fld-label" for="wsSelect">Worksheet</label>
+      <select class="sel" id="wsSelect" aria-label="Worksheet"></select>
     </div>
 
-    <button class="btn btn-block" id="goBtn" type="button">Check and format</button>
-
-    <div class="step-head" style="margin-top:26px"><span class="step-num">2</span><h3 class="sec">Inspection card</h3></div>
-    <div id="emptyState" class="empty-state">Run a check to see results here. <b class="tag-fixed">Fixed</b> = corrected automatically. <b class="tag-review">Review</b> = look at it yourself. <b class="tag-error">Error</b> = must be resolved before import.</div>
-    <div class="hide" id="inspectBody">
-      <div class="stat" id="stats"></div>
-      <div class="mk-banner hide" id="mkBanner"></div>
-      <details class="log" id="logDetails">
-        <summary>Cleaning log</summary>
-        <div class="logbox" id="logbox"></div>
-      </details>
+    <div class="btn-row">
+      <button class="btn btn-primary btn-block" id="goBtn" type="button">Check and format</button>
+      <button class="btn btn-small" id="resetBtn" type="button">Load another file</button>
     </div>
-   </div>
   </div>
 
-  <div class="col-right">
-   <div class="card" id="outputCard">
-    <div class="output-top">
-      <div class="step-head" style="margin:0"><span class="step-num">3</span><h3 class="sec">Formatted output</h3></div>
-      <div class="row">
-        <button class="btn ghost hide" id="resetBtn" type="button">Load another file</button>
-        <button class="btn" id="dlBtn" disabled>Download Excel</button>
-      </div>
-    </div>
-    <div class="detect-row hide" id="detectRow"><span class="chip-detect" id="detectChip">No template detected</span></div>
-
-    <div class="output-panel" id="outputPanel">
-      <div class="nothing-yet" id="nothingYet">
-        <div class="ny-title">Nothing checked yet</div>
-        <p>Paste your data on the left and hit Check and Format.<br>Cells in the result are editable. Changed cells show the old value crossed out.</p>
-      </div>
-      <div class="hide" id="previewHolder">
-        <div class="legend" style="margin-bottom:10px">
-          <span><i class="sw" style="background:var(--sand);border:1px solid #f0cfa0"></i> cell was corrected</span>
-          <span><i class="sw" style="background:#fff;border:1px solid var(--amber)"></i> Specification = Allowance</span>
-        </div>
-        <div class="tbl-scroll">
-          <table id="outTable"></table>
-        </div>
-      </div>
-    </div>
-
-    <div class="hl-legend">Highlight legend: <b style="color:#a5610f">amber</b> = please review, <b style="color:#c0341c">red</b> = blocking error. Corrected cells show a warm tint. Edit any cell directly, then copy or download.</div>
-   </div>
+  <div class="card" id="inspectCard">
+    <div class="step-head"><span class="step">2</span><h2>Inspection card</h2></div>
+    <div id="emptyInspect" class="empty-inspect">Run a check to see results here. <b class="tag-fixed">Fixed</b> = corrected automatically. <b class="tag-review">Review</b> = look at it yourself. <b class="tag-error">Error</b> = must be resolved before import.</div>
+    <div id="checks" class="hide"></div>
   </div>
  </div>
 
- <div class="foot">JACK Import Formatter · runs locally in your browser · build 4</div>
+ <div class="card" id="outputCard">
+   <div class="output-top">
+     <div class="step-head" style="margin:0"><span class="step">3</span><h2>Formatted output</h2></div>
+     <button class="btn btn-small" id="dlBtn" disabled>Download Excel</button>
+   </div>
+
+   <div id="emptyOut" class="empty-out">
+     <div class="eo-t">Nothing checked yet</div>
+     <div>Paste your data above and hit Check and Format.<br>Cells in the result are editable. Changed cells show the old value crossed out.</div>
+   </div>
+
+   <div id="outBody" class="hide">
+     <div class="summary" id="summary"></div>
+
+     <div class="phasebar mkbar-info" id="mkbar">
+       <div class="pb-msg" id="mkMsg"></div>
+       <div id="mkEditWrap" class="hide">Global markup to enter in JACK: <input class="mk-input" id="mkInput" type="text" inputmode="decimal">%</div>
+     </div>
+     <div class="phasebar" id="ccBar">
+       <div class="pb-msg" id="ccMsg"></div>
+       <button class="btn btn-small btn-fix" id="ccFillBtn" type="button">Fill down</button>
+       <button class="btn btn-small" id="ccDelBtn" type="button">Delete those rows</button>
+     </div>
+     <div class="phasebar" id="hdBar">
+       <div class="pb-msg" id="hdMsg"></div>
+       <button class="btn btn-small" id="hdDelBtn" type="button">Delete all flagged</button>
+     </div>
+     <div class="phasebar" id="uomBar">
+       <div class="pb-msg" id="uomMsg"></div>
+       <button class="btn btn-small btn-fix" id="uomMoveBtn" type="button">Move them to Price_Each</button>
+     </div>
+
+     <div class="toolbar">
+       <span class="tpill on" id="tPill">Template: Costings / Estimate</span>
+       <label class="flt"><input type="checkbox" id="fltReview"> Show only rows to review/fix (<span id="fltCount">0</span>)</label>
+       <span class="spacer"></span>
+     </div>
+
+     <div class="tbl-wrap"><table id="outTable"></table></div>
+
+     <div class="pager" id="pager"></div>
+     <div class="legend-foot">yellow = fixed automatically, amber = please review, red = blocking error. Edit any cell directly, then download.</div>
+   </div>
+ </div>
+
+ <div class="foot">JACK Import Formatter &middot; runs locally in your browser &middot; build 5</div>
 </div>
+<div class="toast" id="toast"></div>
 
 <script>
-/* ============================================================
-   JACK costings-estimate output columns (exact order)
-   ============================================================ */
+/* ===== JACK costings-estimate output columns ===== */
 const JACK_COLS = ["Cost_Group","Cost_Category","Item","Specification","Type","Qty","UOM","Price_Each","Markup"];
+const REQUIRED = new Set(["Cost_Category","Item"]);
+const COL = {group:0,cat:1,item:2,spec:3,type:4,qty:5,uom:6,price:7,markup:8};
 
-/* ---- UOM normalization table (from cheatsheet + user spec) ---- */
+/* ===== UOM normalization ===== */
 const UOM_MAP = {
-  // each
   "ea":"ea","each":"ea","ho":"ea","no":"ea","nr":"ea","item":"ea","items":"ea","unit":"ea","units":"ea","pcs":"ea","pce":"ea","piece":"ea","pieces":"ea",
-  // linear
   "lm":"lm","lin m":"lm","linm":"lm","lineal m":"lm","lineal metre":"lm","linear metre":"lm","linear meter":"lm","l/m":"lm","m":"m","metre":"m","meter":"m","metres":"m","meters":"m",
-  // area
   "m2":"m2","sqm":"m2","sq m":"m2","sq.m":"m2","sqm2":"m2","square metre":"m2","square meter":"m2","mm2":"mm2","cm2":"cm2","km2":"km2","in2":"in2","sqin":"in2","sq in":"in2","ft2":"ft2","sqft":"ft2","sq ft":"ft2","yd2":"yd2","sq yd":"yd2","mi2":"mi2","ac":"ac","acre":"ac","ha":"ha","hectare":"ha",
-  // volume
   "m3":"m3","cum":"m3","cu m":"m3","cu.m":"m3","cubic metre":"m3","cubic meter":"m3","mm3":"mm3","cm3":"cm3","cc":"cm3","km3":"km3","in3":"in3","ft3":"ft3","cft":"ft3","cu ft":"ft3","yd3":"yd3","cu yd":"yd3",
-  // liquid
   "l":"L","litre":"L","liter":"L","litres":"L","ml":"mL","millilitre":"mL","gal":"gal","gallon":"gal",
-  // weight
   "kg":"kg","kilogram":"kg","g":"g","gram":"g","t":"t","tonne":"t","ton":"t","lb":"lb","lbs":"lb","oz":"oz",
-  // time
   "hr":"hour","hrs":"hour","hour":"hour","hours":"hour","day":"day","days":"day","wk":"week","week":"week","weeks":"week","mth":"month","month":"month","months":"month",
-  // packaging / misc
   "box":"box","boxes":"box","bag":"bag","bags":"bag","roll":"roll","rolls":"roll","sheet":"sheet","sheets":"sheet","pair":"pair","set":"set","ls":"ls","lot":"lot","sum":"sum","$":"$","%":"%"
 };
-
 const ACRONYMS = new Set(["PC","PS","GST","LLB","FF","GF","WC","WIR","LED","GPO","TV","BBQ","TBA","CAD","DA","QBCC","SA","F2A","R2.0","R3.0","M","KW","LM","UOM"]);
 
-let RESULT = null;   // {rows, log, stats, changedCells:Set('r-c')}
-
-/* ============================================================
-   Cleaning helpers
-   ============================================================ */
+/* ===== cleaning helpers ===== */
 function stripSpecials(s){
   if(s==null) return "";
-  s = String(s);
-  // normalize superscripts to ascii
-  s = s.replace(/²/g,"2").replace(/³/g,"3");
-  // normalize accented/extended latin to closest ascii
-  s = s.normalize("NFKD").replace(/[\u0300-\u036f]/g,"");
-  // smart quotes / dashes -> ascii
-  s = s.replace(/[\u2018\u2019\u2032]/g,"'").replace(/[\u201C\u201D\u2033]/g,'"')
-       .replace(/[\u2013\u2014\u2015]/g,"-").replace(/\u2026/g,"...")
-       .replace(/[\u00A0\u2007\u202F]/g," ");
-  // drop pipes (illegal in templates) and any remaining non-ascii
-  s = s.replace(/\|/g," ");
-  s = s.replace(/[^\x00-\x7F]/g,"");
+  s=String(s).replace(/\u00B2/g,"2").replace(/\u00B3/g,"3");
+  s=s.normalize("NFKD").replace(/[\u0300-\u036f]/g,"");
+  s=s.replace(/[\u2018\u2019\u2032]/g,"'").replace(/[\u201C\u201D\u2033]/g,'"')
+     .replace(/[\u2013\u2014\u2015]/g,"-").replace(/\u2026/g,"...").replace(/[\u00A0\u2007\u202F]/g," ");
+  s=s.replace(/\|/g," ").replace(/[^\x00-\x7F]/g,"");
   return s;
 }
 function collapseSpaces(s){
-  return String(s)
-    .replace(/[ \t]*\n[ \t]*/g,"\n")   // trim around newlines
-    .replace(/\n{3,}/g,"\n\n")          // max one blank line
-    .replace(/[ \t]{2,}/g," ")          // collapse runs of spaces
-    .replace(/[ \t]+([,.;:])/g,"$1")    // no space before punctuation
-    .trim();
+  return String(s).replace(/[ \t]*\n[ \t]*/g,"\n").replace(/\n{3,}/g,"\n\n")
+    .replace(/[ \t]{2,}/g," ").replace(/[ \t]+([,.;:])/g,"$1").trim();
 }
 function titleCase(s){
   return s.split(/(\s+|[\/\-()])/).map(tok=>{
     if(/^\s+$/.test(tok)||/^[\/\-()]$/.test(tok)) return tok;
-    const bare = tok.replace(/[^\w.]/g,"");
-    if(ACRONYMS.has(bare.toUpperCase()) && bare.length<=4) return tok.toUpperCase();
-    if(/^\d/.test(tok)) return tok;                       // leave numbers/sizes
-    if(/^[A-Z0-9.]+$/.test(bare)&&bare.length>1&&bare.length<=4) return tok; // keep short all-caps
+    const bare=tok.replace(/[^\w.]/g,"");
+    if(ACRONYMS.has(bare.toUpperCase())&&bare.length<=4) return tok.toUpperCase();
+    if(/^\d/.test(tok)) return tok;
+    if(/^[A-Z0-9.]+$/.test(bare)&&bare.length>1&&bare.length<=4) return tok;
     return tok.charAt(0).toUpperCase()+tok.slice(1).toLowerCase();
   }).join("");
 }
-
-/* ---- Spelling ----
-   AUTO_FIX: common construction misspellings -> corrected silently (case-insensitive, whole word).
-   PROTECTED: real product/brand names that must NEVER be flagged or changed.
-   FLAG_LIST: words we can't confidently fix but that are commonly typo'd -> flag for review only. */
-const AUTO_FIX = {
-  "concreate":"concrete","concret":"concrete","cocrete":"concrete",
-  "reinforcment":"reinforcement","reinforcment.":"reinforcement","reo":"reo",
-  "excavaton":"excavation","excavtion":"excavation","excevation":"excavation",
-  "insualtion":"insulation","insulaton":"insulation","insultation":"insulation",
-  "plasterbaord":"plasterboard","plasterbord":"plasterboard",
-  "scaffoding":"scaffolding","scaffholding":"scaffolding","scafolding":"scaffolding",
-  "waterprofing":"waterproofing","waterproffing":"waterproofing","waterproofng":"waterproofing",
-  "flashinng":"flashing","guttering":"guttering","guttring":"guttering",
-  "plumbling":"plumbing","plumming":"plumbing","electical":"electrical","electcal":"electrical",
-  "carpentary":"carpentry","carpentery":"carpentry","joinary":"joinery","joinery.":"joinery",
-  "cabintery":"cabinetry","cabinetary":"cabinetry",
-  "aluminuim":"aluminium","alluminium":"aluminium","aluminum":"aluminium",
-  "ceiling.":"ceiling","cieling":"ceiling","cielings":"ceilings",
-  "tempory":"temporary","temprary":"temporary","temporay":"temporary",
-  "instalation":"installation","installtion":"installation","instalaton":"installation",
-  "labour":"labour","labor":"labour","labourer":"labourer","laborer":"labourer",
-  "materal":"material","materil":"material","materails":"materials","materails.":"materials",
-  "allowence":"allowance","alowance":"allowance","allowanace":"allowance",
-  "provisonal":"provisional","provisonal.":"provisional","provsional":"provisional",
-  "finishs":"finishes","finising":"finishing","finsihes":"finishes","finshes":"finishes",
-  "demolision":"demolition","demolation":"demolition","demoltion":"demolition",
-  "repair":"repair","reapir":"repair","recieve":"receive","seperate":"separate",
-  "quantitiy":"quantity","quantiy":"quantity","widnows":"windows","widow":"window",
-  "bathroon":"bathroom","bathrooom":"bathroom","kitchan":"kitchen","kithcen":"kitchen",
-  "balustrde":"balustrade","balustrad":"balustrade","skylght":"skylight","skyligh":"skylight"
-};
-const PROTECTED = new Set([
-  "gyprock","colorbond","hardie","hardies","hardiflex","weathertex","besser","bostik",
-  "sikaflex","hebel","dulux","selleys","ramset","stratco","stramit","lysaght","boral",
-  "cbus","abn","gst","pc","ps","hia","mbav","qbcc","reo","dpc","upvc","mdf","cfc","fc",
-  "villaboard","aquacheck","blueboard","masterwall","rockcote","knauf","csr","james"
-]);
-// small "looks off" list: flag (don't change) when seen
-const FLAG_HINTS = new Set(["tbc","tba","tbd","xxx","tbaa","approx.","approximatly","apprx"]);
-
+const AUTO_FIX={"concreate":"concrete","concret":"concrete","cocrete":"concrete","reinforcment":"reinforcement","excavaton":"excavation","excavtion":"excavation","excevation":"excavation","insualtion":"insulation","insulaton":"insulation","insultation":"insulation","plasterbaord":"plasterboard","plasterbord":"plasterboard","scaffoding":"scaffolding","scaffholding":"scaffolding","scafolding":"scaffolding","waterprofing":"waterproofing","waterproffing":"waterproofing","waterproofng":"waterproofing","flashinng":"flashing","guttring":"guttering","plumbling":"plumbing","plumming":"plumbing","electical":"electrical","electcal":"electrical","carpentary":"carpentry","carpentery":"carpentry","joinary":"joinery","cabintery":"cabinetry","cabinetary":"cabinetry","aluminuim":"aluminium","alluminium":"aluminium","aluminum":"aluminium","cieling":"ceiling","cielings":"ceilings","tempory":"temporary","temprary":"temporary","temporay":"temporary","instalation":"installation","installtion":"installation","instalaton":"installation","labor":"labour","laborer":"labourer","materal":"material","materil":"material","materails":"materials","allowence":"allowance","alowance":"allowance","allowanace":"allowance","provisonal":"provisional","provsional":"provisional","finishs":"finishes","finising":"finishing","finsihes":"finishes","finshes":"finishes","demolision":"demolition","demolation":"demolition","demoltion":"demolition","reapir":"repair","recieve":"receive","seperate":"separate","quantitiy":"quantity","quantiy":"quantity","widnows":"windows","bathroon":"bathroom","bathrooom":"bathroom","kitchan":"kitchen","kithcen":"kitchen","balustrde":"balustrade","balustrad":"balustrade","skylght":"skylight","skyligh":"skylight"};
+const PROTECTED=new Set(["gyprock","colorbond","hardie","hardies","hardiflex","weathertex","besser","bostik","sikaflex","hebel","dulux","selleys","ramset","stratco","stramit","lysaght","boral","cbus","abn","gst","pc","ps","hia","mbav","qbcc","reo","dpc","upvc","mdf","cfc","fc","villaboard","aquacheck","blueboard","masterwall","rockcote","knauf","csr","james"]);
+const FLAG_HINTS=new Set(["tbc","tba","tbd","xxx","tbaa","approx.","approximatly","apprx"]);
 function spellPass(text, flags){
-  // operate token by token, keeping separators intact
   return text.split(/(\s+|[\/\-()&,.:;])/).map(tok=>{
-    const bare = tok.toLowerCase().replace(/[^a-z']/g,"");
-    if(!bare || bare.length<3) return tok;
-    if(PROTECTED.has(bare)) return tok;                 // never touch product/brand names
-    if(AUTO_FIX[bare]){                                  // confident fix
-      const fixed = AUTO_FIX[bare];
-      if(fixed.toLowerCase()===bare) return tok;         // no visible change (e.g. labour->labour)
-      flags.autofixed.add(`${tok.trim()} → ${fixed}`);
-      // preserve original capitalisation shape
+    const bare=tok.toLowerCase().replace(/[^a-z']/g,"");
+    if(!bare||bare.length<3) return tok;
+    if(PROTECTED.has(bare)) return tok;
+    if(AUTO_FIX[bare]){
+      const fixed=AUTO_FIX[bare];
+      if(fixed.toLowerCase()===bare) return tok;
+      flags.autofixed.add(tok.trim()+" \u2192 "+fixed);
       if(tok===tok.toUpperCase()) return fixed.toUpperCase();
       if(tok[0]===tok[0]?.toUpperCase()) return fixed.charAt(0).toUpperCase()+fixed.slice(1);
       return fixed;
@@ -392,416 +317,549 @@ function spellPass(text, flags){
 }
 function normUOM(u){
   if(u==null) return "";
-  let raw = stripSpecials(String(u)).trim();
+  let raw=stripSpecials(String(u)).trim();
   if(!raw) return "";
-  const key = raw.toLowerCase().replace(/\.$/,"").trim();
+  const key=raw.toLowerCase().replace(/\.$/,"").trim();
   if(UOM_MAP[key]) return UOM_MAP[key];
-  // keep unknown UOM as-is (user instruction) but lower-cased if it's a word
   return raw;
 }
 function toNumber(v){
   if(v==null||v==="") return null;
   if(typeof v==="number") return v;
-  const n = parseFloat(String(v).replace(/[^0-9.\-]/g,""));
+  const n=parseFloat(String(v).replace(/[^0-9.\-]/g,""));
   return isNaN(n)?null:n;
 }
 function isAllowance(title,desc){
   const t=((title||"")+" "+(desc||"")).toUpperCase();
   return /\bPC\b|\bPS\b|\(PC\)|\(PS\)|PRIME COST|PROVISIONAL SUM|\bPC SUM\b|ALLOWANCE/.test(t);
 }
-
-/* strip leading BuilderTrend numeric code from a "01 Preliminaries" style category */
-function cleanCategory(cat){
-  let s = stripSpecials(cat);
-  s = s.replace(/^\s*\d+[\.\)]?\s+/,"");   // remove leading "01 " / "13. "
-  s = collapseSpaces(s);
-  return titleCase(s);
+function cleanCategory(cat, upper){
+  let s=stripSpecials(cat).replace(/^\s*\d+[\.\)]?\s+/,"");
+  s=collapseSpaces(s);
+  s=titleCase(s);
+  return upper? s.toUpperCase() : s;
 }
-
-/* ============================================================
-   Column detection (BuilderTrend)
-   ============================================================ */
 function findCols(headers){
-  const h = headers.map(x=>String(x||"").trim().toLowerCase());
-  const find = (...names)=>{ for(const n of names){const i=h.indexOf(n); if(i>=0)return i;} return -1; };
+  const h=headers.map(x=>String(x||"").trim().toLowerCase().replace(/[\s_]+/g,""));
+  const find=(...names)=>{for(const n of names){const i=h.indexOf(n.replace(/[\s_]+/g,"").toLowerCase());if(i>=0)return i;}return -1;};
   return {
-    category: find("category"),
-    costcode: find("cost code","costcode"),
+    category: find("category","costcategory","categorydescription","categorydesc","costcat"),
     title:    find("title"),
-    desc:     find("description"),
-    qty:      find("quantity","qty"),
-    unit:     find("unit","uom"),
-    unitcost: find("unit cost","unitcost","price each","price_each"),
-    markup:   find("markup"),
+    desc:     find("description","items","item","itemdescription","lineitem","costitem"),
+    qty:      find("quantity","qty","estimatedqty","quantities","no","nos","count"),
+    unit:     find("unit","uom","units","unitofmeasure"),
+    unitcost: find("unitcost","unit cost","priceeach","price each","price_each","estimatedunitcost","unitprice","rate","price"),
+    markup:   find("markup","margin","markuppercent"),
+    total:    find("total","linetotal","amount","subtotal","estimatedcost","estimatedtotal"),
   };
 }
 
-/* ============================================================
-   Main transform
-   ============================================================ */
-function transform(aoa){
-  const log=[]; const changed=new Set();
-  const headers = aoa[0]||[];
-  const c = findCols(headers);
-  if(c.category<0 && c.desc<0){
-    throw new Error("This doesn't look like a BuilderTrend estimate export (no Category/Description columns found).");
-  }
-  log.push(["info",`Detected BuilderTrend columns: Category[${c.category}] Description[${c.desc}] Unit Cost[${c.unitcost}] Markup[${c.markup}]`]);
+/* ===== detect heading/separator rows ===== */
+function looksLikeHeading(rawCat, itemRaw, price, qtyRaw){
+  const noPrice = (price==null);
+  const noQty = (qtyRaw==null || String(qtyRaw).trim()==="");
+  const item=String(itemRaw||"").trim();
+  const cat=String(rawCat||"").trim();
+  if(!item && !cat) return false;              // fully empty handled elsewhere
+  // heading: has a category-ish label but no item, no price, no qty
+  if(cat && !item && noPrice) return true;
+  // separator: item is all caps / dashes only, no price
+  if(item && noPrice && noQty && /^[-=_*\s]+$/.test(item)) return true;
+  return false;
+}
 
-  const out=[];
-  let allowCount=0, uomFixes=0, uomDefaults=0, specialFixes=0, spaceFixes=0, caseFixes=0;
-  const rawMarkups=[], priceForRow=[];
+/* ============================================================
+   Main transform  ->  {cols, rows, cells(flags), checks, markupMode, ...}
+   cells: 2D array parallel to rows; each = {flag:'fixed'|'review'|'error'|null, was:oldValue|null, msg}
+   ============================================================ */
+function transform(aoa, opts){
+  opts=opts||{};
+  const upperCat=opts.upperCat;
+  const headers=aoa[0]||[];
+  const c=findCols(headers);
+  if(c.category<0 && c.desc<0)
+    throw new Error("This doesn't look like a BuilderTrend estimate export (no Category/Description columns found).");
+
+  const rows=[], cells=[], checks=[], rawMarkups=[], priceForRow=[], meta=[];
   const spellFlags={autofixed:new Set(), review:new Set()};
+  let allowCount=0, uomFixes=0, uomDefaults=0, specialFixes=0, spaceFixes=0;
+
+  function newFlagRow(){ return JACK_COLS.map(()=>({flag:null,was:null,msg:""})); }
 
   for(let r=1;r<aoa.length;r++){
     const row=aoa[r];
-    if(!row || row.every(x=>x==null||String(x).trim()==="")) continue;
-    const rawCat = c.category>=0?row[c.category]:"";
-    if((rawCat==null||String(rawCat).trim()==="") && (row[c.desc]==null||String(row[c.desc]).trim()==="")) continue;
+    if(!row || row.every(x=>x==null||String(x).trim()==="")) continue; // drop fully-empty
+    const rawCat=c.category>=0?row[c.category]:"";
+    const itemRaw=c.desc>=0?row[c.desc]:"";
+    const qtyRaw=c.qty>=0?row[c.qty]:"";
+    let pe=c.unitcost>=0?toNumber(row[c.unitcost]):null;
 
-    // --- Cost_Category (from Category, code stripped, title-cased, spell-checked) ---
-    let catClean = cleanCategory(rawCat);
-    catClean = spellPass(catClean, spellFlags);
-    if(catClean!==String(rawCat||"").trim()) { changed.add(`${out.length}-1`); }
+    const out=["", "", "", "", "Mat_Lab", "", "", "", ""];
+    const fr=newFlagRow();
+    const isHeading = looksLikeHeading(rawCat,itemRaw,pe,qtyRaw);
 
-    // --- Item (from Description) ---
-    let itemRaw = c.desc>=0 ? row[c.desc] : "";
-    let item = stripSpecials(itemRaw);
-    if(item!==String(itemRaw||"")) { specialFixes++; }
-    let itemCollapsed = collapseSpaces(item);
-    if(itemCollapsed!==item) spaceFixes++;
-    item = itemCollapsed;
-    item = spellPass(item, spellFlags);   // fix known typos, flag uncertain ones
-    if(item!==String(itemRaw||"")) changed.add(`${out.length}-2`);
+    // Cost_Category
+    let catClean=cleanCategory(rawCat,upperCat);
+    catClean=spellPass(catClean,spellFlags);
+    out[COL.cat]=catClean;
+    if(catClean!==String(rawCat||"").trim() && catClean!=="")
+      { fr[COL.cat].flag="fixed"; fr[COL.cat].was=String(rawCat||"").trim(); }
+    if(!catClean){ fr[COL.cat].flag="review"; fr[COL.cat].msg="Blank Cost_Category"; }
 
-    // --- Specification (Allowance detection) ---
-    const title = c.title>=0?row[c.title]:"";
-    let spec="";
-    if(isAllowance(title,itemRaw)){ spec="Allowance"; allowCount++; changed.add(`${out.length}-3`); }
+    // Item
+    let item=stripSpecials(itemRaw);
+    if(item!==String(itemRaw||"")) specialFixes++;
+    let coll=collapseSpaces(item);
+    if(coll!==item) spaceFixes++;
+    item=spellPass(coll,spellFlags);
+    out[COL.item]=item;
+    if(item!==String(itemRaw||"").trim() && item!=="")
+      { fr[COL.item].flag="fixed"; fr[COL.item].was=String(itemRaw||"").trim(); }
+    if(!item){ fr[COL.item].flag="review"; fr[COL.item].msg="Blank Item"; }
 
-    // --- Type default ---
-    const type="Mat_Lab";
+    // Specification (Allowance)
+    const title=c.title>=0?row[c.title]:"";
+    if(isAllowance(title,itemRaw)){ out[COL.spec]="Allowance"; allowCount++; fr[COL.spec].flag="fixed"; fr[COL.spec].was=""; }
 
-    // --- Qty (3 decimals per cheatsheet) ---
-    let qn = c.qty>=0?toNumber(row[c.qty]):1;
-    if(qn==null) qn=1;
-    const qty = qn.toFixed(3);
+    // Qty
+    let qn=c.qty>=0?toNumber(qtyRaw):1; if(qn==null) qn=1;
+    out[COL.qty]=qn.toFixed(3);
 
-    // --- UOM ---
-    let uomRaw = c.unit>=0?row[c.unit]:"";
-    let uom = normUOM(uomRaw);
-    const uomWasBlank = !uom;
-    if(!uom) uom="ea";                               // blank Unit -> ea default (cheatsheet)
-    if(uomWasBlank){ uomDefaults++; }
-    else if(uom!==String(uomRaw||"").trim()){ uomFixes++; changed.add(`${out.length}-6`); }
+    // UOM
+    let uomRaw=c.unit>=0?row[c.unit]:"";
+    let uom=normUOM(uomRaw);
+    const wasBlank=!uom;
+    // numbers-in-UOM detection (before default)
+    const uomStr=String(uomRaw==null?"":uomRaw).trim();
+    let uomHasNumber = uomStr!=="" && /^[0-9.,$]+$/.test(uomStr);
+    if(!uom){ uom="ea"; if(!uomHasNumber) uomDefaults++; }
+    else if(uom!==uomStr){ uomFixes++; fr[COL.uom].flag="fixed"; fr[COL.uom].was=uomStr; }
+    out[COL.uom]=uom;
+    if(uomHasNumber){ fr[COL.uom].flag="error"; fr[COL.uom].msg="Numbers found in UOM"; meta._uomNum=(meta._uomNum||0); }
 
-    // --- Price_Each (2 decimals) ---
-    let pe = c.unitcost>=0?toNumber(row[c.unitcost]):null;
-    const price = pe==null? "" : pe.toFixed(2);
+    // Price_Each
+    out[COL.price]= pe==null? "" : pe.toFixed(2);
 
-    // --- Markup: collected raw now, decided (global vs per-line) after the loop ---
-    let mk = c.markup>=0?toNumber(row[c.markup]):null;
+    // Markup collected
+    let mk=c.markup>=0?toNumber(row[c.markup]):null;
     rawMarkups.push(mk);
-
-    // Cost_Group left blank (optional) unless you later want grouping.
-    // Markup cell is a placeholder ("") for now; filled in after global detection.
-    out.push(["", catClean, item, spec, type, qty, uom, price, ""]);
     priceForRow.push(pe);
+
+    // Qty verification via Total (when both available)
+    if(c.total>=0){
+      const tot=toNumber(row[c.total]);
+      if(tot!=null && pe!=null && pe!==0){
+        const impliedQty=tot/pe;
+        if(Math.abs(impliedQty-qn) > 0.01 && Math.abs(impliedQty-qn) > qn*0.02){
+          fr[COL.qty].flag = fr[COL.qty].flag||"review";
+          fr[COL.qty].msg="Qty "+qn.toFixed(3)+" but Total/Price = "+impliedQty.toFixed(3);
+        }
+      }
+    }
+
+    rows.push(out);
+    cells.push(fr);
+    meta.push({heading:isHeading, uomNum:uomHasNumber, blankCat:!catClean});
   }
 
-  /* ---- Markup: global vs per-line detection ----
-     Cheatsheet: "Leave blank by default. This can be entered at the global level by the customer."
-     A global markup is only safe when applying ONE rate to the whole estimate reproduces the
-     original client total exactly. That is only true when EVERY line carries the identical rate.
-     If any line differs (including 0% exception lines), a single global rate would change the
-     client price, so we keep the per-line markup untouched instead. */
-  const allRates = rawMarkups.map(m => m==null ? 0 : Math.round(m*1e6)/1e6);
-  const distinctAll = [...new Set(allRates)];
-  const distinctNonZero = [...new Set(allRates.filter(m=>m!==0))];
-  const isGlobal = distinctAll.length===1 && distinctAll[0]!==0;  // every line identical & non-zero
-  const globalRate = isGlobal ? distinctAll[0] : null;
-
-  // totals to verify the client price is preserved / show the gap
-  const totCost = priceForRow.reduce((a,p)=>a+(p||0),0);
-  const totMarkupDollars = priceForRow.reduce((a,p,i)=>{
-    const m=rawMarkups[i]; return a + ((p||0)*((m||0)/100));
-  },0);
-  const totClient = totCost + totMarkupDollars;
-  const blended = totCost>0 ? (totMarkupDollars/totCost*100) : 0;
-  // what a single global rate would produce vs the real client total
-  const zeroLines = allRates.filter(m=>m===0).length;
-
+  /* ---- Markup: global vs per-line ---- */
+  const allRates=rawMarkups.map(m=>m==null?0:Math.round(m*1e6)/1e6);
+  const distinctAll=[...new Set(allRates)];
+  const distinctNonZero=[...new Set(allRates.filter(m=>m!==0))];
+  const isGlobal=distinctAll.length===1 && distinctAll[0]!==0;
+  const globalRate=isGlobal?distinctAll[0]:null;
+  const totCost=priceForRow.reduce((a,p)=>a+(p||0),0);
+  const totMk=priceForRow.reduce((a,p,i)=>a+((p||0)*((rawMarkups[i]||0)/100)),0);
+  const totClient=totCost+totMk;
+  const blended=totCost>0?(totMk/totCost*100):0;
+  const zeroLines=allRates.filter(m=>m===0).length;
   let markupMode;
-  for(let i=0;i<out.length;i++){
-    if(isGlobal){
-      out[i][8] = "0.00";                 // safe: uniform rate, JACK re-applies it globally
-      if(rawMarkups[i]!=null && rawMarkups[i]!==0) changed.add(`${i}-8`);
-    }else{
-      out[i][8] = rawMarkups[i]==null ? "" : Number(rawMarkups[i]).toFixed(2);
+  for(let i=0;i<rows.length;i++){
+    if(isGlobal){ rows[i][COL.markup]="0.00"; if(rawMarkups[i]!=null&&rawMarkups[i]!==0){cells[i][COL.markup].flag="fixed";cells[i][COL.markup].was=String(rawMarkups[i]);} }
+    else{ rows[i][COL.markup]= rawMarkups[i]==null?"":Number(rawMarkups[i]).toFixed(2); }
+  }
+  if(isGlobal) markupMode={global:true,rate:globalRate,blended,totCost,totClient,zeroLines:0};
+  else markupMode={global:false,blended,rates:distinctNonZero,totCost,totClient,zeroLines};
+
+  /* ---- build the checks list (inspection card) ---- */
+  // per-cell derived checks
+  for(let i=0;i<rows.length;i++){
+    for(let ci=0;ci<JACK_COLS.length;ci++){
+      const f=cells[i][ci];
+      if(!f.flag) continue;
+      const rn=i+1;
+      if(f.flag==="error") checks.push(["err",`Row ${rn} · ${JACK_COLS[ci]}: ${f.msg||"error"}`]);
+      else if(f.flag==="review") checks.push(["rev",`Row ${rn} · ${JACK_COLS[ci]}: ${f.msg||"review"}`]);
     }
+    if(meta[i].heading) checks.push(["rev",`Row ${i+1}: looks like a heading/separator — review, not auto-deleted`]);
   }
-
-  if(isGlobal){
-    markupMode = {global:true, rate:globalRate, blended:blended,
-      totCost:totCost, totClient:totClient, zeroLines:0};
-    log.push(["flag",`Markup is GLOBAL — every line is ${globalRate}%. Client total is preserved when you set ${globalRate}% globally in JACK. Per-line markup cleared to 0.00.`]);
-  }else{
-    markupMode = {global:false, blended:blended, rates:distinctNonZero,
-      totCost:totCost, totClient:totClient, zeroLines:zeroLines};
-    const why = zeroLines>0
-      ? `${zeroLines} line(s) carry 0% while others don't`
-      : `lines use different rates (${distinctNonZero.map(r=>r+'%').join(', ')})`;
-    log.push(["flag",`Markup kept PER-LINE — ${why}, so a single global rate would change the client total. Original values preserved.`]);
+  // required-column emptiness -> error
+  for(let i=0;i<rows.length;i++){
+    if(!rows[i][COL.cat] && !meta[i].heading){ cells[i][COL.cat].flag="error"; cells[i][COL.cat].msg="Cost_Category required"; }
+    if(!rows[i][COL.item] && !meta[i].heading){ cells[i][COL.item].flag="error"; cells[i][COL.item].msg="Item required"; }
   }
+  // spelling summary lines
+  if(spellFlags.autofixed.size) checks.push(["fix",`Spelling auto-corrected: ${[...spellFlags.autofixed].join(" · ")}`]);
+  if(spellFlags.review.size) checks.push(["rev",`Spelling to review (not changed): ${[...spellFlags.review].join(", ")}`]);
+  if(specialFixes) checks.push(["fix",`Special characters normalised in ${specialFixes} field(s)`]);
+  if(spaceFixes) checks.push(["fix",`Spacing cleaned in ${spaceFixes} field(s)`]);
+  if(allowCount) checks.push(["fix",`Specification set to "Allowance" on ${allowCount} row(s)`]);
+  if(uomFixes) checks.push(["fix",`UOM normalised on ${uomFixes} row(s)`]);
+  if(uomDefaults) checks.push(["fix",`Blank UOM defaulted to "ea" on ${uomDefaults} row(s)`]);
 
-  log.push(["fix",`Special characters normalized / removed: ${specialFixes} field(s)`]);
-  log.push(["fix",`Spacing cleaned (double spaces, stray line breaks): ${spaceFixes} field(s)`]);
-  log.push(["fix",`Casing applied: Title Case for names/items, acronyms preserved, UOMs lowercased`]);
-  log.push(["fix",`UOM normalized: ${uomFixes} row(s) · blank Unit defaulted to "ea": ${uomDefaults} row(s)`]);
-  log.push(["flag",`Specification set to "Allowance" (PC/PS/Prime Cost/Provisional Sum): ${allowCount} row(s)`]);
-  if(spellFlags.autofixed.size)
-    log.push(["fix",`Spelling auto-corrected: ${[...spellFlags.autofixed].join(" · ")}`]);
-  if(spellFlags.review.size)
-    log.push(["flag",`Spelling flagged for review (not changed): ${[...spellFlags.review].join(", ")}`]);
-  log.push(["info",`Type defaulted to Mat_Lab · Qty to 3 dp · Price_Each to 2 dp`]);
+  // counts by heading/blankcat/uomnum
+  const headingRows=meta.filter(m=>m.heading).length;
+  const blankCatRows=meta.filter(m=>m.blankCat && !m.heading).length;
+  const uomNumRows=meta.filter(m=>m.uomNum).length;
 
-  return {
-    rows: out,
-    log,
-    changed,
-    markupMode,
-    spellFlags:{autofixed:[...spellFlags.autofixed], review:[...spellFlags.review]},
-    stats:{ total: out.length, allowance: allowCount, uom: uomFixes, uomDefaults: uomDefaults, special: specialFixes,
-      spellFixes: spellFlags.autofixed.size, spellReview: spellFlags.review.size }
-  };
+  return {cols:JACK_COLS, rows, cells, meta, checks, markupMode,
+    counts:{headingRows, blankCatRows, uomNumRows}};
 }
 
 /* ============================================================
-   Rendering
+   State + rendering
    ============================================================ */
-function render(res){
-  RESULT=res;
-  // stats
-  const s=document.getElementById("stats");
-  s.innerHTML =
-    (res.sheetName?`<span class="pill">sheet: ${escapeHtml(res.sheetName)}</span>`:``)+
-    `<span class="pill">${res.stats.total} line items</span>`+
-    `<span class="pill warn">${res.stats.allowance} Allowance</span>`+
-    `<span class="pill ok">${res.stats.special} special-char fixes</span>`+
-    `<span class="pill ok">${res.stats.uom} UOM normalized</span>`+
-    `<span class="pill">${res.stats.uomDefaults} UOM defaulted &rarr; ea</span>`+
-    (res.stats.spellFixes?`<span class="pill ok">${res.stats.spellFixes} spelling fixed</span>`:``)+
-    (res.stats.spellReview?`<span class="pill warn">${res.stats.spellReview} spelling to review</span>`:``);
+let RESULT=null, WORKBOOK=null, ACTIVE_TPL="bt-estimate";
+let PAGE=0, PER=100, FILTER=false, MK_OVERRIDE=null;
+const $ = id=>document.getElementById(id);
 
-  // log
-  const lb=document.getElementById("logbox");
-  lb.innerHTML = res.log.map(([k,m])=>`<div class="l-${k}">${k==='fix'?'✔':k==='flag'?'⚑':'•'} ${escapeHtml(m)}</div>`).join("");
+function flagCounts(){
+  let err=0,rev=0,fix=0;
+  RESULT.cells.forEach(fr=>fr.forEach(f=>{ if(f.flag==="error")err++; else if(f.flag==="review")rev++; else if(f.flag==="fixed")fix++; }));
+  return {err,rev,fix};
+}
+function rowHasFlag(i){ return RESULT.cells[i].some(f=>f.flag==="error"||f.flag==="review"); }
 
-  // markup banner
-  const mb=document.getElementById("mkBanner");
-  const mm=res.markupMode;
+function render(){
+  // summary pills
+  const {err,rev,fix}=flagCounts();
+  const dataRows=RESULT.rows.length;
+  const sum=$("summary"); sum.innerHTML="";
+  const pill=(t,cls)=>{const s=document.createElement("span");s.className="pill"+(cls?" "+cls:"");s.textContent=t;return s;};
+  if(err) sum.appendChild(pill(err+" error"+(err>1?"s":""),"rev"));
+  sum.appendChild(pill(rev+" to review","rev"));
+  sum.appendChild(pill(fix+" auto-fixed","fix"));
+  sum.appendChild(pill(dataRows+" data rows"));
+  if(err===0 && rev===0) sum.appendChild(pill("All clear — ready to import","ok"));
+
+  renderMarkupBar();
+  renderWarningBars();
+
+  // filter count
+  let flaggedRows=[]; for(let i=0;i<RESULT.rows.length;i++) if(rowHasFlag(i)) flaggedRows.push(i);
+  $("fltCount").textContent=flaggedRows.length;
+
+  renderTable(flaggedRows);
+  renderChecks();
+
+  $("emptyOut").classList.add("hide");
+  $("outBody").classList.remove("hide");
+  $("emptyInspect").classList.add("hide");
+  $("checks").classList.remove("hide");
+  $("dlBtn").disabled=false;
+}
+
+function renderMarkupBar(){
+  const mm=RESULT.markupMode, bar=$("mkbar"), msg=$("mkMsg"), ew=$("mkEditWrap");
   const fmt=n=>"$"+n.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
-  if(mm && mm.global){
-    mb.className="mk-banner global";
-    mb.innerHTML=`<span class="ic">⚑</span><div>`+
-      `Every line uses the same <span class="rate">${mm.rate}%</span> markup, so this is a true `+
-      `<b>global markup</b>. Per-line markup has been cleared to <b>0.00</b>; set <b>${mm.rate}%</b> globally in JACK `+
-      `and the client total is reproduced exactly.<br>`+
-      `<span style="color:var(--muted)">Cost (ex GST) ${fmt(mm.totCost)} → Client ${fmt(mm.totClient)}.</span>`+
-      `</div>`;
-    mb.classList.remove("hide");
-  }else if(mm){
-    mb.className="mk-banner perline";
-    const reason = mm.zeroLines>0
-      ? `${mm.zeroLines} line(s) have 0% markup while others don't`
-      : `lines use different rates (${mm.rates.map(r=>r+'%').join(', ')})`;
-    mb.innerHTML=`<span class="ic">ℹ</span><div>`+
-      `Markup was <b>kept per-line</b>. Because ${reason}, a single global rate would `+
-      `<b>not</b> reproduce the client total, so the original per-line values are preserved to keep the numbers correct.<br>`+
-      `<span style="color:var(--muted)">Cost (ex GST) ${fmt(mm.totCost)} → Client ${fmt(mm.totClient)} · blended ≈ ${mm.blended.toFixed(2)}%. `+
-      `A flat ${mm.blended.toFixed(2)}% global rate would not match line-by-line.</span>`+
-      `</div>`;
-    mb.classList.remove("hide");
+  bar.classList.add("show");
+  if(mm.global){
+    msg.innerHTML=`Markup zeroed to 0.00 in the output. This estimate is a <b>global markup</b> — every line is <span class="rate">${mm.rate}%</span>. Cost ${fmt(mm.totCost)} → Client ${fmt(mm.totClient)}.`;
+    ew.classList.remove("hide");
+    if(MK_OVERRIDE==null) $("mkInput").value=mm.rate;
   }else{
-    mb.classList.add("hide");
+    const why=mm.zeroLines>0?`${mm.zeroLines} line(s) at 0% while others aren't`:`mixed rates (${mm.rates.map(r=>r+'%').join(', ')})`;
+    msg.innerHTML=`Markup <b>kept per-line</b> (${why}); a single global rate would change the client total. Cost ${fmt(mm.totCost)} → Client ${fmt(mm.totClient)} · blended ≈ <b>${mm.blended.toFixed(2)}%</b>.`;
+    ew.classList.add("hide");
   }
-
-  // table
-  const t=document.getElementById("outTable");
-  let html="<thead><tr>"+JACK_COLS.map(c=>`<th>${c}</th>`).join("")+"</tr></thead><tbody>";
-  res.rows.forEach((row,ri)=>{
-    html+="<tr>";
-    row.forEach((val,ci)=>{
-      const chg = res.changed.has(`${ri}-${ci}`)?" chg":"";
-      const isSpec = ci===3 && val==="Allowance";
-      const isNum = ci===5||ci===7||ci===8;
-      const cls = (isSpec?"spec":"")+(isNum?" num":"")+chg;
-      html+=`<td class="${cls.trim()}">${escapeHtml(val)}</td>`;
-    });
-    html+="</tr>";
-  });
-  html+="</tbody>";
-  t.innerHTML=html;
-
-  // step 2 inspection card (left)
-  document.getElementById("emptyState").classList.add("hide");
-  document.getElementById("inspectBody").classList.remove("hide");
-  document.getElementById("logDetails").open=false;
-  // step 3 formatted output (right)
-  document.getElementById("nothingYet").classList.add("hide");
-  document.getElementById("previewHolder").classList.remove("hide");
-  const detect=document.getElementById("detectRow");
-  detect.classList.remove("hide");
-  const chip=document.getElementById("detectChip");
-  chip.textContent="Costings / Estimate detected";
-  chip.classList.add("ok");
-  const dl=document.getElementById("dlBtn");
-  dl.disabled=false;
-  document.getElementById("resetBtn").classList.remove("hide");
 }
+
+function renderWarningBars(){
+  const cc=RESULT.counts;
+  // blank cost_category
+  const ccBar=$("ccBar");
+  if(cc.blankCatRows>0){ ccBar.classList.add("show"); $("ccMsg").innerHTML=`<b>${cc.blankCatRows}</b> row(s) have a blank Cost_Category.`; }
+  else ccBar.classList.remove("show");
+  // headings
+  const hdBar=$("hdBar");
+  if(cc.headingRows>0){ hdBar.classList.add("show"); $("hdMsg").innerHTML=`<b>${cc.headingRows}</b> row(s) look like headings/separators — flagged for review, not deleted.`; }
+  else hdBar.classList.remove("show");
+  // numbers in uom
+  const uomBar=$("uomBar");
+  if(cc.uomNumRows>0){ uomBar.classList.add("show"); $("uomMsg").innerHTML=`<b>${cc.uomNumRows}</b> row(s) have numbers in UOM.`; }
+  else uomBar.classList.remove("show");
+}
+
+function renderTable(flaggedRows){
+  const t=$("outTable");
+  let idxs = FILTER ? flaggedRows : RESULT.rows.map((_,i)=>i);
+  const totalPages=Math.max(1,Math.ceil(idxs.length/PER));
+  if(PAGE>=totalPages) PAGE=totalPages-1;
+  if(PAGE<0) PAGE=0;
+  const start=PAGE*PER, pageIdxs=idxs.slice(start,start+PER);
+
+  let h="<thead><tr><th>#</th>";
+  RESULT.cols.forEach(cn=>{ h+=`<th class="${REQUIRED.has(cn)?'req':''}">${cn}</th>`; });
+  h+="</tr></thead><tbody>";
+  for(const i of pageIdxs){
+    const row=RESULT.rows[i], fr=RESULT.cells[i], isHeading=RESULT.meta[i].heading;
+    h+=`<tr class="${isHeading?'row-flag':''}">`;
+    h+=`<td class="rownum">${i+1}${isHeading||rowHasFlag(i)?`<button class="delrow" data-row="${i}" title="Delete row">×</button>`:''}</td>`;
+    for(let ci=0;ci<row.length;ci++){
+      const f=fr[ci];
+      const cls=[];
+      if(f.flag==="fixed") cls.push("c-fixed");
+      else if(f.flag==="review") cls.push("c-review");
+      else if(f.flag==="error") cls.push("c-error");
+      if(ci===COL.qty||ci===COL.price||ci===COL.markup) cls.push("num");
+      const wasHtml = (f.was!=null && f.was!=="") ? `<span class="was">${escapeHtml(f.was)}</span>` : "";
+      const title = f.msg ? ` title="${escapeHtml(f.msg)}"` : "";
+      h+=`<td class="${cls.join(' ')}" contenteditable data-row="${i}" data-col="${ci}"${title}>${wasHtml}${escapeHtml(row[ci])}</td>`;
+    }
+    h+="</tr>";
+  }
+  h+="</tbody>";
+  t.innerHTML=h;
+
+  // pager
+  const pg=$("pager");
+  if(idxs.length>PER){
+    pg.innerHTML=`<button class="btn btn-small" id="prevPg" ${PAGE===0?'disabled':''}>Prev</button>`+
+      `<span>Showing rows ${start+1}–${Math.min(start+PER,idxs.length)} of ${idxs.length}${FILTER?' (flagged)':''}</span>`+
+      `<button class="btn btn-small" id="nextPg" ${PAGE>=totalPages-1?'disabled':''}>Next</button>`+
+      `<span>Page ${PAGE+1} / ${totalPages}</span>`;
+    $("prevPg").onclick=()=>{PAGE--;renderTable(flaggedRows);};
+    $("nextPg").onclick=()=>{PAGE++;renderTable(flaggedRows);};
+  }else pg.innerHTML="";
+}
+
+function renderChecks(){
+  const box=$("checks");
+  const order={err:0,rev:1,fix:2};
+  const sorted=[...RESULT.checks].sort((a,b)=>order[a[0]]-order[b[0]]);
+  const {err,rev,fix}=flagCounts();
+  let h=`<div class="count-summary">`+
+    `<span class="cchip err">${err} error${err!==1?'s':''}</span>`+
+    `<span class="cchip rev">${rev} to review</span>`+
+    `<span class="cchip fix">${fix} auto-fixed</span>`+
+    (err===0&&rev===0?`<span class="cchip ok">Ready to import</span>`:``)+
+    `</div>`;
+  const cap=120;
+  sorted.slice(0,cap).forEach(([k,m])=>{
+    const stamp=k==="err"?"Error":k==="rev"?"Review":"Fixed";
+    h+=`<div class="check ${k}"><span class="stamp ${k}">${stamp}</span><span>${escapeHtml(m)}</span></div>`;
+  });
+  if(sorted.length>cap) h+=`<div class="check"><span>${sorted.length-cap} more not shown</span></div>`;
+  box.innerHTML=h;
+}
+
 function escapeHtml(x){return String(x==null?"":x).replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]));}
+function toast(msg){const t=$("toast");t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),1800);}
 
 /* ============================================================
-   File handling
+   Recompute helper (re-run transform, keep markup override)
    ============================================================ */
-let WORKBOOK=null;   // parsed workbook (Excel) awaiting sheet choice / formatting
-let PASTED_AOA=null; // parsed paste-box grid
-
-function loadFile(file){
-  document.getElementById("chosenName").textContent=file.name;
-  const reader=new FileReader();
-  reader.onload=e=>{
-    try{
-      const isCsv=/\.csv$/i.test(file.name);
-      const data=isCsv? e.target.result : new Uint8Array(e.target.result);
-      WORKBOOK=XLSX.read(data,{type:isCsv?"string":"array"});
-      PASTED_AOA=null;                          // a file supersedes any paste
-      document.getElementById("pasteBox").value="";
-      const names=WORKBOOK.SheetNames;
-      const sel=document.getElementById("wsSelect");
-      sel.innerHTML=names.map(n=>`<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join("");
-      // worksheet selector appears ONLY for a multi-sheet workbook
-      document.getElementById("wsRow").classList.toggle("hide", names.length<=1);
-    }catch(err){
-      alert("Couldn't read that file:\n"+err.message);
-      console.error(err);
-    }
-  };
-  const isCsv=/\.csv$/i.test(file.name);
-  if(isCsv) reader.readAsText(file); else reader.readAsArrayBuffer(file);
+function runFormat(){
+  let aoa=null;
+  const paste=$("pasteBox").value.trim();
+  if(WORKBOOK){
+    const names=WORKBOOK.SheetNames;
+    const sn=names.length>1?$("wsSelect").value:names[0];
+    aoa=XLSX.utils.sheet_to_json(WORKBOOK.Sheets[sn],{header:1,raw:true,defval:""});
+  }else if(paste){
+    aoa=parsePaste(paste);
+  }else{ alert("Paste your data or choose a file first."); return; }
+  try{
+    RESULT=transform(aoa,{upperCat: $("ccCase").value==="upper"});
+    PAGE=0;
+    render();
+  }catch(e){ alert("Couldn't process that data:\n"+e.message); console.error(e); }
 }
-
-// parse the paste box (tab- or comma-separated, headers on first line)
 function parsePaste(text){
   const lines=text.replace(/\r/g,"").split("\n").filter(l=>l.length);
   if(!lines.length) return null;
-  const delim = lines[0].indexOf("\t")>=0 ? "\t" : ",";
+  const delim=lines[0].indexOf("\t")>=0?"\t":",";
   return lines.map(l=>l.split(delim));
 }
 
-function runFormat(){
-  let aoa=null, sheetName=null;
-  const paste=document.getElementById("pasteBox").value.trim();
-  if(WORKBOOK){
-    const names=WORKBOOK.SheetNames;
-    sheetName = names.length>1 ? document.getElementById("wsSelect").value : names[0];
-    aoa=XLSX.utils.sheet_to_json(WORKBOOK.Sheets[sheetName],{header:1,raw:true,defval:""});
-  }else if(paste){
-    aoa=parsePaste(paste);
-  }else{
-    alert("Paste your data or choose a file first.");
-    return;
-  }
-  try{
-    const res=transform(aoa);
-    if(sheetName) res.sheetName=sheetName;
-    render(res);
-  }catch(err){
-    alert("Couldn't process that data:\n"+err.message);
-    console.error(err);
-  }
-}
-
+/* ============================================================
+   Download
+   ============================================================ */
 function download(){
   if(!RESULT) return;
-  const aoa=[JACK_COLS, ...RESULT.rows];
+  const aoa=[RESULT.cols, ...RESULT.rows];
   const ws=XLSX.utils.aoa_to_sheet(aoa);
   ws["!cols"]=[{wch:16},{wch:26},{wch:60},{wch:14},{wch:10},{wch:9},{wch:8},{wch:12},{wch:9}];
   for(let r=1;r<aoa.length;r++){
-    const q=ws[XLSX.utils.encode_cell({r,c:5})]; if(q){q.t="n";q.z="0.000";q.v=parseFloat(q.v);}
-    const p=ws[XLSX.utils.encode_cell({r,c:7})]; if(p&&p.v!==""){p.t="n";p.z="0.00";p.v=parseFloat(p.v);}
+    const q=ws[XLSX.utils.encode_cell({r,c:COL.qty})]; if(q){q.t="n";q.z="0.000";q.v=parseFloat(q.v)||0;}
+    const p=ws[XLSX.utils.encode_cell({r,c:COL.price})]; if(p&&p.v!==""){p.t="n";p.z="0.00";p.v=parseFloat(p.v)||0;}
+    // force text columns to text
+    [COL.group,COL.cat,COL.item,COL.spec,COL.type,COL.uom].forEach(ci=>{
+      const cell=ws[XLSX.utils.encode_cell({r,c:ci})]; if(cell){cell.t="s";cell.v=String(cell.v==null?"":cell.v);}
+    });
   }
   const wb=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb,ws,"costings-estimate");
-  XLSX.writeFile(wb,"JACK_Estimate_Import.xlsx");
+  const base=(window.__uploadName||"JACK_Estimate").replace(/\.[^.]+$/,"");
+  XLSX.writeFile(wb, base+"-formatted.xlsx");
 }
 
-/* ---- template selector ---- */
-let ACTIVE_TPL="bt-estimate";
-document.getElementById("tplSelect").addEventListener("change",e=>{ ACTIVE_TPL=e.target.value; });
+/* ============================================================
+   Editing + bulk actions (delegated)
+   ============================================================ */
+$("outTable").addEventListener("blur",e=>{
+  const td=e.target.closest("td[contenteditable]");
+  if(!td) return;
+  const i=+td.dataset.row, ci=+td.dataset.col;
+  // text after removing the .was span
+  const clone=td.cloneNode(true);
+  clone.querySelectorAll(".was").forEach(x=>x.remove());
+  const val=clone.textContent.trim();
+  RESULT.rows[i][ci]=val;
+  // clear the flag on manual edit (user has taken ownership), keep required-empty as error
+  const f=RESULT.cells[i][ci];
+  if(REQUIRED.has(RESULT.cols[ci]) && !val){ f.flag="error"; f.msg=RESULT.cols[ci]+" required"; }
+  else { f.flag=null; f.was=null; f.msg=""; }
+  render();
+},true);
 
-/* ---- wire up ---- */
-const fileInput=document.getElementById("file");
-document.getElementById("browseBtn").addEventListener("click",()=>fileInput.click());
+$("outTable").addEventListener("click",e=>{
+  const del=e.target.closest(".delrow");
+  if(!del) return;
+  const i=+del.dataset.row;
+  RESULT.rows.splice(i,1); RESULT.cells.splice(i,1); RESULT.meta.splice(i,1);
+  recountAndRebuildChecks();
+  render(); toast("Row deleted");
+});
+
+function recountAndRebuildChecks(){
+  // recompute counts + checks from current rows/cells/meta
+  const checks=[];
+  for(let i=0;i<RESULT.rows.length;i++){
+    for(let ci=0;ci<RESULT.cols.length;ci++){
+      const f=RESULT.cells[i][ci]; if(!f.flag) continue;
+      if(f.flag==="error") checks.push(["err",`Row ${i+1} · ${RESULT.cols[ci]}: ${f.msg||"error"}`]);
+      else if(f.flag==="review") checks.push(["rev",`Row ${i+1} · ${RESULT.cols[ci]}: ${f.msg||"review"}`]);
+    }
+    if(RESULT.meta[i].heading) checks.push(["rev",`Row ${i+1}: heading/separator — review`]);
+  }
+  RESULT.checks=checks;
+  RESULT.counts={
+    headingRows:RESULT.meta.filter(m=>m.heading).length,
+    blankCatRows:RESULT.meta.filter(m=>m.blankCat&&!m.heading).length,
+    uomNumRows:RESULT.meta.filter(m=>m.uomNum).length
+  };
+}
+
+// bulk: fill down blank Cost_Category
+$("ccFillBtn").addEventListener("click",()=>{
+  let last="";
+  for(let i=0;i<RESULT.rows.length;i++){
+    if(RESULT.rows[i][COL.cat]) last=RESULT.rows[i][COL.cat];
+    else if(last){ RESULT.rows[i][COL.cat]=last; RESULT.meta[i].blankCat=false;
+      const f=RESULT.cells[i][COL.cat]; f.flag="fixed"; f.was=""; f.msg=""; }
+  }
+  recountAndRebuildChecks(); render(); toast("Filled blank categories");
+});
+// bulk: delete blank-category rows
+$("ccDelBtn").addEventListener("click",()=>{
+  for(let i=RESULT.rows.length-1;i>=0;i--) if(RESULT.meta[i].blankCat && !RESULT.meta[i].heading){
+    RESULT.rows.splice(i,1);RESULT.cells.splice(i,1);RESULT.meta.splice(i,1);
+  }
+  recountAndRebuildChecks(); render(); toast("Deleted blank-category rows");
+});
+// bulk: delete heading rows
+$("hdDelBtn").addEventListener("click",()=>{
+  for(let i=RESULT.rows.length-1;i>=0;i--) if(RESULT.meta[i].heading){
+    RESULT.rows.splice(i,1);RESULT.cells.splice(i,1);RESULT.meta.splice(i,1);
+  }
+  recountAndRebuildChecks(); render(); toast("Deleted flagged heading rows");
+});
+// bulk: move numbers-in-UOM to Price_Each
+$("uomMoveBtn").addEventListener("click",()=>{
+  for(let i=0;i<RESULT.rows.length;i++){
+    const f=RESULT.cells[i][COL.uom];
+    if(RESULT.meta[i].uomNum){
+      const num=toNumber(RESULT.rows[i][COL.uom]);
+      if(num!=null){ RESULT.rows[i][COL.price]=num.toFixed(2); RESULT.cells[i][COL.price].flag="fixed"; RESULT.cells[i][COL.price].was=RESULT.rows[i][COL.price]; }
+      RESULT.rows[i][COL.uom]="ea"; f.flag="fixed"; f.msg=""; f.was="(number)";
+      RESULT.meta[i].uomNum=false;
+    }
+  }
+  recountAndRebuildChecks(); render(); toast("Moved UOM numbers to Price_Each");
+});
+
+// markup override input
+$("mkInput").addEventListener("input",e=>{ MK_OVERRIDE=e.target.value; });
+
+// filter toggle
+$("fltReview").addEventListener("change",e=>{ FILTER=e.target.checked; PAGE=0; render(); });
+
+// casing toggle re-runs
+$("ccCase").addEventListener("change",()=>{ if(RESULT) runFormat(); });
+
+/* ============================================================
+   File loading + drag/drop + wire up
+   ============================================================ */
+const fileInput=$("file");
+function loadFile(file){
+  window.__uploadName=file.name;
+  $("chosenName").textContent=file.name;
+  const isText=/\.(csv|tsv|txt)$/i.test(file.name);
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    try{
+      const data=isText?ev.target.result:new Uint8Array(ev.target.result);
+      WORKBOOK=XLSX.read(data,{type:isText?"string":"array"});
+      $("pasteBox").value="";
+      const names=WORKBOOK.SheetNames;
+      $("wsSelect").innerHTML=names.map(n=>`<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join("");
+      $("wsRow").classList.toggle("hide", names.length<=1);
+    }catch(err){ alert("Couldn't read that file:\n"+err.message); }
+  };
+  if(isText) reader.readAsText(file); else reader.readAsArrayBuffer(file);
+}
+$("browseBtn").addEventListener("click",()=>fileInput.click());
 fileInput.addEventListener("change",e=>{ if(e.target.files[0]) loadFile(e.target.files[0]); });
+$("pasteBox").addEventListener("input",()=>{
+  if($("pasteBox").value.trim()){ WORKBOOK=null; fileInput.value=""; window.__uploadName=null;
+    $("chosenName").textContent="No file chosen — or drag & drop it here"; $("wsRow").classList.add("hide"); }
+});
+$("pasteBox").addEventListener("keydown",e=>{ if((e.ctrlKey||e.metaKey)&&e.key==="Enter") runFormat(); });
+$("goBtn").addEventListener("click",runFormat);
+$("dlBtn").addEventListener("click",download);
+$("tplSelect").addEventListener("change",e=>{ ACTIVE_TPL=e.target.value; });
 
-/* ---- drag & drop (whole input card is a drop target) ---- */
-const inputCard=document.getElementById("inputCard");
-const dropZone=document.getElementById("dropZone");
+// drag & drop
+const inputCard=$("inputCard"), dropZone=$("dropZone");
 function isFileDrag(e){ return e.dataTransfer && Array.from(e.dataTransfer.types||[]).includes("Files"); }
 ["dragenter","dragover"].forEach(ev=>inputCard.addEventListener(ev,e=>{
-  if(!isFileDrag(e)) return;              // ignore text drags (e.g. selecting in the paste box)
-  e.preventDefault();
-  inputCard.classList.add("card-drag");
-  dropZone.classList.add("drag");
+  if(!isFileDrag(e))return; e.preventDefault(); inputCard.classList.add("card-drag"); dropZone.classList.add("drag");
 }));
 ["dragleave","dragend"].forEach(ev=>inputCard.addEventListener(ev,e=>{
-  // only clear when actually leaving the card, not moving between children
-  if(ev==="dragleave" && inputCard.contains(e.relatedTarget)) return;
-  inputCard.classList.remove("card-drag");
-  dropZone.classList.remove("drag");
+  if(ev==="dragleave"&&inputCard.contains(e.relatedTarget))return;
+  inputCard.classList.remove("card-drag"); dropZone.classList.remove("drag");
 }));
 inputCard.addEventListener("drop",e=>{
-  if(!isFileDrag(e)) return;
-  e.preventDefault();
-  inputCard.classList.remove("card-drag");
-  dropZone.classList.remove("drag");
+  if(!isFileDrag(e))return; e.preventDefault();
+  inputCard.classList.remove("card-drag"); dropZone.classList.remove("drag");
   const f=e.dataTransfer.files[0];
-  if(f){
-    const ok=/\.(xlsx|xls|csv)$/i.test(f.name);
-    if(!ok){ alert("Please drop an .xlsx, .xls or .csv file."); return; }
-    loadFile(f);
-  }
+  if(f){ if(!/\.(xlsx|xlsm|xls|csv|tsv|txt)$/i.test(f.name)){alert("Please drop an .xlsx, .xls, .csv or .tsv file.");return;} loadFile(f); }
 });
-document.getElementById("pasteBox").addEventListener("input",()=>{
-  // typing/pasting into the box clears a previously chosen file
-  if(document.getElementById("pasteBox").value.trim()){
-    WORKBOOK=null; fileInput.value="";
-    document.getElementById("chosenName").textContent="No file chosen — or drag &amp; drop it here";
-    document.getElementById("wsRow").classList.add("hide");
-  }
-});
-document.getElementById("goBtn").addEventListener("click",runFormat);
-document.getElementById("dlBtn").addEventListener("click",download);
 
-function resetOutput(){
-  document.getElementById("inspectBody").classList.add("hide");
-  document.getElementById("emptyState").classList.remove("hide");
-  document.getElementById("previewHolder").classList.add("hide");
-  document.getElementById("nothingYet").classList.remove("hide");
-  document.getElementById("detectRow").classList.add("hide");
-  const chip=document.getElementById("detectChip");
-  chip.textContent="No template detected"; chip.classList.remove("ok");
-  document.getElementById("dlBtn").disabled=true;
-  document.getElementById("resetBtn").classList.add("hide");
-  // clear inputs
-  RESULT=null; WORKBOOK=null; PASTED_AOA=null; fileInput.value="";
-  document.getElementById("pasteBox").value="";
-  document.getElementById("chosenName").textContent="No file chosen — or drag &amp; drop it here";
-  document.getElementById("wsRow").classList.add("hide");
-  document.getElementById("inputCard").scrollIntoView({behavior:"smooth",block:"start"});
-}
-document.getElementById("resetBtn").addEventListener("click",resetOutput);
+// reset
+$("resetBtn").addEventListener("click",()=>{
+  RESULT=null; WORKBOOK=null; fileInput.value=""; MK_OVERRIDE=null; FILTER=false; PAGE=0;
+  window.__uploadName=null;
+  $("pasteBox").value=""; $("chosenName").textContent="No file chosen — or drag & drop it here";
+  $("wsRow").classList.add("hide"); $("fltReview").checked=false;
+  $("outBody").classList.add("hide"); $("emptyOut").classList.remove("hide");
+  $("checks").classList.add("hide"); $("emptyInspect").classList.remove("hide");
+  $("dlBtn").disabled=true;
+  ["mkbar","ccBar","hdBar","uomBar"].forEach(id=>$(id).classList.remove("show"));
+  toast("Cleared — ready for another file");
+});
+
 </script>
 </body>
 </html>
